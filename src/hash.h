@@ -17,4 +17,22 @@ bool hash_meio_do_quadrado(
     size_t *indice
 );
 
+
+
+bool hash_duplo_passo(
+    const char *matricula,
+    size_t capacidade,
+    size_t *passo
+);
+
+
+bool hash_duplo_posicao(
+    const char *matricula,
+    size_t capacidade,
+    size_t tentativa,
+    size_t *indice
+);
+
+
+
 #endif
