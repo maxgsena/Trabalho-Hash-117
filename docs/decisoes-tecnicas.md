@@ -116,3 +116,66 @@ percorridas sem repeticao antes de completar o ciclo.
 - src/hash.h
 - src/hash.c
 - tests/test_hash_duplo.c
+
+
+## 3. Insercao e Busca
+
+A insercao e a busca utilizam as funcoes H3 e C4.
+
+### Inicializacao
+
+A tabela e inicializada por meio de alocacao
+dinamica utilizando calloc.
+
+A capacidade inicial deve ser um numero primo.
+
+### Insercao
+
+Para inserir um estudante:
+
+1. Validar a matricula;
+2. Calcular o indice inicial utilizando H3;
+3. Calcular o passo utilizando H2;
+4. Verificar se a posicao esta ocupada;
+5. Em caso de colisao, avancar utilizando
+   o hash duplo;
+6. Verificar se a matricula ja existe;
+7. Armazenar o estudante na primeira posicao
+   disponivel, respeitando os marcadores de remocao.
+
+Matriculas duplicadas sao rejeitadas.
+
+### Busca
+
+A busca utiliza a mesma sequencia de sondagem
+da insercao.
+
+A operacao termina quando:
+- A matricula e encontrada;
+- Uma posicao vazia e encontrada;
+- Todas as posicoes sao verificadas.
+
+### Contabilizacao
+
+Colisoes:
+Contabilizamos uma colisao quando a posicao
+inicial de uma nova matricula esta ocupada
+por outra matricula.
+
+Sondagens:
+Contabilizamos cada posicao examinada durante
+as operacoes de insercao e busca.
+
+### Limitacao atual
+
+Nesta etapa, o crescimento automatico da tabela
+ainda nao foi implementado.
+
+Essa funcionalidade sera adicionada junto ao
+rehashing.
+
+### Arquivos
+
+- src/tabela_hash.h
+- src/tabela_hash.c
+- tests/test_tabela_hash.c

@@ -181,6 +181,9 @@ static bool capacidade_prima(size_t numero) {
     return true;
 }
 
+bool hash_capacidade_valida(size_t capacidade) {
+    return capacidade_prima(capacidade);
+}
 
 static size_t somar_modulo(
     size_t a,

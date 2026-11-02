@@ -33,6 +33,6 @@ bool hash_duplo_posicao(
     size_t *indice
 );
 
-
+bool hash_capacidade_valida(size_t capacidade);
 
 #endif

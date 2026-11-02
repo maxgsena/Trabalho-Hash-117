@@ -1,7 +1,9 @@
 #ifndef TABELA_HASH_H
 #define TABELA_HASH_H
 
+#include <stdbool.h>
 #include <stddef.h>
+
 #include "estudante.h"
 
 
@@ -29,5 +31,40 @@ typedef struct {
     size_t sondagens;
 
 } TabelaHash;
+
+
+typedef enum {
+    TABELA_INSERCAO_SUCESSO,
+    TABELA_INSERCAO_DUPLICADA,
+    TABELA_INSERCAO_CHEIA,
+    TABELA_INSERCAO_PARAMETRO_INVALIDO
+} ResultadoInsercao;
+
+
+typedef enum {
+    TABELA_BUSCA_ENCONTRADA,
+    TABELA_BUSCA_NAO_ENCONTRADA,
+    TABELA_BUSCA_PARAMETRO_INVALIDO
+} ResultadoBusca;
+
+
+bool tabela_hash_inicializar(
+    TabelaHash *tabela,
+    size_t capacidade
+);
+
+void tabela_hash_liberar(TabelaHash *tabela);
+
+
+ResultadoInsercao tabela_hash_inserir(
+    TabelaHash *tabela,
+    const Estudante *estudante
+);
+
+ResultadoBusca tabela_hash_buscar(
+    TabelaHash *tabela,
+    const char *matricula,
+    Estudante *resultado
+);
 
 #endif
