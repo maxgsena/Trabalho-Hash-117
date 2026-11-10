@@ -48,6 +48,14 @@ typedef enum {
 } ResultadoBusca;
 
 
+
+typedef enum {
+    TABELA_MODIFICACAO_SUCESSO,
+    TABELA_MODIFICACAO_NAO_ENCONTRADA,
+    TABELA_MODIFICACAO_PARAMETRO_INVALIDO
+} ResultadoModificacao;
+
+
 bool tabela_hash_inicializar(
     TabelaHash *tabela,
     size_t capacidade
@@ -65,6 +73,19 @@ ResultadoBusca tabela_hash_buscar(
     TabelaHash *tabela,
     const char *matricula,
     Estudante *resultado
+);
+
+
+ResultadoModificacao tabela_hash_atualizar(
+    TabelaHash *tabela,
+    const char *matricula,
+    const Estudante *atualizado
+);
+
+
+ResultadoModificacao tabela_hash_remover(
+    TabelaHash *tabela,
+    const char *matricula
 );
 
 #endif

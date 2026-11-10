@@ -7,6 +7,44 @@
 #include <string.h>
 
 
+static bool estudante_valido(const Estudante *estudante) {
+
+    if (estudante == NULL) {
+        return false;
+    }
+
+    if (memchr(
+        estudante->matricula,
+        '\0',
+        sizeof(estudante->matricula)
+    ) == NULL) {
+        return false;
+    }
+
+    if (memchr(
+        estudante->nome,
+        '\0',
+        sizeof(estudante->nome)
+    ) == NULL) {
+        return false;
+    }
+
+    if (memchr(
+        estudante->curso,
+        '\0',
+        sizeof(estudante->curso)
+    ) == NULL) {
+        return false;
+    }
+
+    uint64_t chave;
+
+    return converter_matricula(
+        estudante->matricula,
+        &chave
+    );
+}
+
 bool tabela_hash_inicializar(
     TabelaHash *tabela,
     size_t capacidade
@@ -73,20 +111,10 @@ ResultadoInsercao tabela_hash_inserir(
 
     if (tabela == NULL ||
         tabela->entradas == NULL ||
-        estudante == NULL) {
+        !estudante_valido(estudante)) {
 
         return TABELA_INSERCAO_PARAMETRO_INVALIDO;
-    }
-
-    
-    if (memchr(
-        estudante->matricula,
-        '\0',
-        sizeof(estudante->matricula)
-    ) == NULL) {
-
-        return TABELA_INSERCAO_PARAMETRO_INVALIDO;
-    }
+}
 
     
     uint64_t chave;
@@ -221,16 +249,16 @@ ResultadoInsercao tabela_hash_inserir(
 }
 
 
-ResultadoBusca tabela_hash_buscar(
+static ResultadoBusca localizar_indice(
     TabelaHash *tabela,
     const char *matricula,
-    Estudante *resultado
+    size_t *indice_encontrado
 ) {
 
     if (tabela == NULL ||
         tabela->entradas == NULL ||
         matricula == NULL ||
-        resultado == NULL) {
+        indice_encontrado == NULL) {
 
         return TABELA_BUSCA_PARAMETRO_INVALIDO;
     }
@@ -244,23 +272,21 @@ ResultadoBusca tabela_hash_buscar(
     size_t indice;
     size_t passo;
 
-
+    
     if (!hash_meio_do_quadrado(
         matricula,
         tabela->capacidade,
         &indice
     )) {
-
         return TABELA_BUSCA_PARAMETRO_INVALIDO;
     }
 
-
+    
     if (!hash_duplo_passo(
         matricula,
         tabela->capacidade,
         &passo
     )) {
-
         return TABELA_BUSCA_PARAMETRO_INVALIDO;
     }
 
@@ -272,12 +298,12 @@ ResultadoBusca tabela_hash_buscar(
 
         tabela->sondagens++;
 
-     
+        
         if (entrada->estado == ENTRADA_VAZIA) {
             return TABELA_BUSCA_NAO_ENCONTRADA;
         }
 
-   
+        
         if (entrada->estado == ENTRADA_OCUPADA) {
 
             if (strcmp(
@@ -285,13 +311,13 @@ ResultadoBusca tabela_hash_buscar(
                 matricula
             ) == 0) {
 
-                *resultado = entrada->estudante;
+                *indice_encontrado = indice;
 
                 return TABELA_BUSCA_ENCONTRADA;
             }
         }
 
-       
+      
 
         indice = proxima_posicao(
             indice,
@@ -301,4 +327,116 @@ ResultadoBusca tabela_hash_buscar(
     }
 
     return TABELA_BUSCA_NAO_ENCONTRADA;
+}
+
+ResultadoBusca tabela_hash_buscar(
+    TabelaHash *tabela,
+    const char *matricula,
+    Estudante *resultado
+) {
+
+    if (resultado == NULL) {
+        return TABELA_BUSCA_PARAMETRO_INVALIDO;
+    }
+
+    size_t indice;
+
+    ResultadoBusca situacao = localizar_indice(
+        tabela,
+        matricula,
+        &indice
+    );
+
+    if (situacao != TABELA_BUSCA_ENCONTRADA) {
+        return situacao;
+    }
+
+    *resultado = tabela->entradas[indice].estudante;
+
+    return TABELA_BUSCA_ENCONTRADA;
+}
+
+
+ResultadoModificacao tabela_hash_atualizar(
+    TabelaHash *tabela,
+    const char *matricula,
+    const Estudante *atualizado
+) {
+
+    if (matricula == NULL ||
+        !estudante_valido(atualizado)) {
+
+        return TABELA_MODIFICACAO_PARAMETRO_INVALIDO;
+    }
+
+   
+    if (strcmp(
+        matricula,
+        atualizado->matricula
+    ) != 0) {
+
+        return TABELA_MODIFICACAO_PARAMETRO_INVALIDO;
+    }
+
+    size_t indice;
+
+    ResultadoBusca situacao = localizar_indice(
+        tabela,
+        matricula,
+        &indice
+    );
+
+    if (situacao == TABELA_BUSCA_PARAMETRO_INVALIDO) {
+        return TABELA_MODIFICACAO_PARAMETRO_INVALIDO;
+    }
+
+    if (situacao == TABELA_BUSCA_NAO_ENCONTRADA) {
+        return TABELA_MODIFICACAO_NAO_ENCONTRADA;
+    }
+
+  
+    tabela->entradas[indice].estudante = *atualizado;
+
+    return TABELA_MODIFICACAO_SUCESSO;
+}
+
+
+ResultadoModificacao tabela_hash_remover(
+    TabelaHash *tabela,
+    const char *matricula
+) {
+
+    size_t indice;
+
+    ResultadoBusca situacao = localizar_indice(
+        tabela,
+        matricula,
+        &indice
+    );
+
+    if (situacao == TABELA_BUSCA_PARAMETRO_INVALIDO) {
+        return TABELA_MODIFICACAO_PARAMETRO_INVALIDO;
+    }
+
+    if (situacao == TABELA_BUSCA_NAO_ENCONTRADA) {
+        return TABELA_MODIFICACAO_NAO_ENCONTRADA;
+    }
+
+  
+    EntradaHash *entrada = &tabela->entradas[indice];
+
+    entrada->estado = ENTRADA_REMOVIDA;
+
+   
+    memset(
+        &entrada->estudante,
+        0,
+        sizeof(Estudante)
+    );
+
+  
+    tabela->quantidade--;
+    tabela->removidos++;
+
+    return TABELA_MODIFICACAO_SUCESSO;
 }

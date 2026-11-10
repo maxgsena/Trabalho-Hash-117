@@ -179,3 +179,60 @@ rehashing.
 - src/tabela_hash.h
 - src/tabela_hash.c
 - tests/test_tabela_hash.c
+
+## 4. Atualizacao e Remocao
+
+### Atualizacao
+
+A atualizacao localiza o estudante pela matricula
+e substitui seus dados.
+
+A matricula nao pode ser alterada, pois representa
+a chave utilizada pela tabela hash.
+
+A operacao utiliza a funcao auxiliar localizar_indice()
+para encontrar o registro.
+
+### Remocao
+
+A remocao utiliza a mesma sequencia de sondagem
+da funcao de busca.
+
+Quando um estudante e removido:
+
+1. Sua posicao recebe o estado ENTRADA_REMOVIDA;
+2. Os dados antigos sao zerados;
+3. A quantidade de estudantes e decrementada;
+4. O contador de posicoes removidas e incrementado.
+
+A posicao nao recebe ENTRADA_VAZIA, pois isso
+poderia interromper buscas de estudantes que
+foram armazenados apos uma colisao.
+
+### Reutilizacao de posicoes
+
+Durante uma nova insercao, posicoes removidas
+podem ser reutilizadas.
+
+A implementacao continua procurando a matricula
+antes de utilizar o marcador, evitando a insercao
+duplicada de uma chave que esteja mais adiante
+na sequencia de sondagem.
+
+### Testes realizados
+
+Foram realizados testes de:
+
+- Atualizacao de dados;
+- Proibicao de alteracao da matricula;
+- Remocao de estudante;
+- Busca apos remocao em situacao de colisao;
+- Busca por estudante removido;
+- Remocao de matricula inexistente;
+- Reutilizacao de posicao removida.
+
+### Arquivos
+
+- src/tabela_hash.h
+- src/tabela_hash.c
+- tests/test_atualizacao_remocao.c
