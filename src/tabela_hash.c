@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <stdio.h>
 
 #define FATOR_CARGA_MAXIMO 0.70
 
@@ -641,4 +641,94 @@ ResultadoModificacao tabela_hash_remover(
     tabela->removidos++;
 
     return TABELA_MODIFICACAO_SUCESSO;
+}
+
+
+void tabela_hash_listar(const TabelaHash *tabela) {
+
+    if (tabela == NULL || tabela->entradas == NULL) {
+        printf("Tabela nao inicializada!\n");
+        return;
+    }
+
+    printf("\n========== ESTUDANTES CADASTRADOS ==========\n");
+
+    if (tabela->quantidade == 0) {
+        printf("Nenhum estudante cadastrado.\n");
+        return;
+    }
+
+    printf("%-15s %-30s %-35s %-10s\n",
+           "MATRICULA",
+           "NOME",
+           "CURSO",
+           "PERIODO");
+
+    printf("-------------------------------------------------------------------------------\n");
+
+    for (size_t i = 0; i < tabela->capacidade; i++) {
+
+        if (tabela->entradas[i].estado == ENTRADA_OCUPADA) {
+
+            Estudante estudante = tabela->entradas[i].estudante;
+
+            printf("%-15s %-30s %-35s %-10u\n",
+                   estudante.matricula,
+                   estudante.nome,
+                   estudante.curso,
+                   estudante.periodo);
+        }
+    }
+
+    printf("\nTotal de estudantes: %zu\n", tabela->quantidade);
+}
+
+
+void tabela_hash_exibir_estrutura(const TabelaHash *tabela) {
+
+    if (tabela == NULL || tabela->entradas == NULL) {
+        printf("Tabela nao inicializada!\n");
+        return;
+    }
+
+    double fator_carga =
+        (double)tabela->quantidade /
+        (double)tabela->capacidade;
+
+    printf("\n========== ESTRUTURA DA TABELA HASH ==========\n");
+
+    printf("Capacidade: %zu\n", tabela->capacidade);
+    printf("Estudantes cadastrados: %zu\n", tabela->quantidade);
+    printf("Posicoes removidas: %zu\n", tabela->removidos);
+
+    printf("Fator de carga: %.2f%%\n", fator_carga * 100);
+
+    printf("Colisoes: %zu\n", tabela->colisoes);
+    printf("Sondagens: %zu\n", tabela->sondagens);
+
+    printf("\n========== POSICOES DA TABELA ==========\n");
+
+    for (size_t i = 0; i < tabela->capacidade; i++) {
+
+        EntradaHash entrada = tabela->entradas[i];
+
+        printf("[%zu] ", i);
+
+        if (entrada.estado == ENTRADA_OCUPADA) {
+
+            printf("OCUPADA | Matricula: %s | Nome: %s\n",
+                   entrada.estudante.matricula,
+                   entrada.estudante.nome);
+
+        } else if (entrada.estado == ENTRADA_REMOVIDA) {
+
+            printf("REMOVIDA\n");
+
+        } else {
+
+            printf("VAZIA\n");
+        }
+    }
+
+    printf("========================================\n");
 }
