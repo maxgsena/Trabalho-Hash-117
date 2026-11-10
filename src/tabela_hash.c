@@ -7,6 +7,15 @@
 #include <string.h>
 
 
+#define FATOR_CARGA_MAXIMO 0.70
+
+
+static ResultadoBusca localizar_indice(
+    TabelaHash *tabela,
+    const char *matricula,
+    size_t *indice_encontrado
+);
+
 static bool estudante_valido(const Estudante *estudante) {
 
     if (estudante == NULL) {
@@ -104,6 +113,165 @@ static size_t proxima_posicao(
 }
 
 
+static bool calcular_proxima_capacidade(
+    size_t atual,
+    size_t *proxima
+) {
+
+    if (proxima == NULL) {
+        return false;
+    }
+
+    
+    if (atual > (SIZE_MAX - 1) / 2) {
+        return false;
+    }
+
+    size_t candidato = atual * 2 + 1;
+
+    
+    while (!hash_capacidade_valida(candidato)) {
+
+        if (candidato > SIZE_MAX - 2) {
+            return false;
+        }
+
+        candidato += 2;
+    }
+
+    *proxima = candidato;
+
+    return true;
+}
+
+
+static bool tabela_hash_rehash(
+    TabelaHash *tabela,
+    size_t nova_capacidade
+) {
+
+    if (tabela == NULL ||
+        tabela->entradas == NULL ||
+        nova_capacidade <= tabela->capacidade ||
+        nova_capacidade <= tabela->quantidade ||
+        !hash_capacidade_valida(nova_capacidade)) {
+
+        return false;
+    }
+
+    
+    EntradaHash *novas_entradas = calloc(
+        nova_capacidade,
+        sizeof(EntradaHash)
+    );
+
+    if (novas_entradas == NULL) {
+        return false;
+    }
+
+    size_t colisoes_rehash = 0;
+    size_t sondagens_rehash = 0;
+
+    
+    for (size_t i = 0; i < tabela->capacidade; i++) {
+
+        
+        if (tabela->entradas[i].estado != ENTRADA_OCUPADA) {
+            continue;
+        }
+
+        Estudante estudante = tabela->entradas[i].estudante;
+
+        size_t indice;
+        size_t passo;
+
+        
+        if (!hash_meio_do_quadrado(
+            estudante.matricula,
+            nova_capacidade,
+            &indice
+        )) {
+
+            free(novas_entradas);
+            return false;
+        }
+
+        
+        if (!hash_duplo_passo(
+            estudante.matricula,
+            nova_capacidade,
+            &passo
+        )) {
+
+            free(novas_entradas);
+            return false;
+        }
+
+        
+        bool colisao_inicial =
+            novas_entradas[indice].estado == ENTRADA_OCUPADA;
+
+        bool inserido = false;
+
+        
+        for (size_t tentativa = 0;
+             tentativa < nova_capacidade;
+             tentativa++) {
+
+            sondagens_rehash++;
+
+            if (novas_entradas[indice].estado != ENTRADA_OCUPADA) {
+
+                novas_entradas[indice].estudante = estudante;
+
+                novas_entradas[indice].estado = ENTRADA_OCUPADA;
+
+                if (colisao_inicial) {
+                    colisoes_rehash++;
+                }
+
+                inserido = true;
+
+                break;
+            }
+
+            indice = proxima_posicao(
+                indice,
+                passo,
+                nova_capacidade
+            );
+        }
+
+        
+        if (!inserido) {
+            free(novas_entradas);
+            return false;
+        }
+    }
+
+  
+
+    EntradaHash *vetor_antigo = tabela->entradas;
+
+    tabela->entradas = novas_entradas;
+
+    tabela->capacidade = nova_capacidade;
+
+    
+    tabela->removidos = 0;
+
+    
+    tabela->colisoes += colisoes_rehash;
+
+    tabela->sondagens += sondagens_rehash;
+
+    
+    free(vetor_antigo);
+
+    return true;
+}
+
+
 ResultadoInsercao tabela_hash_inserir(
     TabelaHash *tabela,
     const Estudante *estudante
@@ -114,23 +282,57 @@ ResultadoInsercao tabela_hash_inserir(
         !estudante_valido(estudante)) {
 
         return TABELA_INSERCAO_PARAMETRO_INVALIDO;
-}
+    }
 
-    
-    uint64_t chave;
+   
+    double fator_previsto =
+        (double)(tabela->quantidade + 1) /
+        (double)tabela->capacidade;
 
-    if (!converter_matricula(
-        estudante->matricula,
-        &chave
-    )) {
+    if (fator_previsto >= FATOR_CARGA_MAXIMO) {
 
-        return TABELA_INSERCAO_PARAMETRO_INVALIDO;
+       
+        size_t indice_existente;
+
+        ResultadoBusca situacao = localizar_indice(
+            tabela,
+            estudante->matricula,
+            &indice_existente
+        );
+
+        if (situacao == TABELA_BUSCA_ENCONTRADA) {
+            return TABELA_INSERCAO_DUPLICADA;
+        }
+
+        if (situacao == TABELA_BUSCA_PARAMETRO_INVALIDO) {
+            return TABELA_INSERCAO_PARAMETRO_INVALIDO;
+        }
+
+        
+        size_t nova_capacidade;
+
+        if (!calcular_proxima_capacidade(
+            tabela->capacidade,
+            &nova_capacidade
+        )) {
+
+            return TABELA_INSERCAO_FALHA_REDIMENSIONAMENTO;
+        }
+
+       
+        if (!tabela_hash_rehash(
+            tabela,
+            nova_capacidade
+        )) {
+
+            return TABELA_INSERCAO_FALHA_REDIMENSIONAMENTO;
+        }
     }
 
     size_t indice;
     size_t passo;
 
-  
+    
     if (!hash_meio_do_quadrado(
         estudante->matricula,
         tabela->capacidade,
@@ -140,7 +342,7 @@ ResultadoInsercao tabela_hash_inserir(
         return TABELA_INSERCAO_PARAMETRO_INVALIDO;
     }
 
-  
+    
     if (!hash_duplo_passo(
         estudante->matricula,
         tabela->capacidade,
@@ -154,7 +356,7 @@ ResultadoInsercao tabela_hash_inserir(
 
     bool colisao_inicial = false;
 
-  
+    
     for (size_t tentativa = 0;
          tentativa < tabela->capacidade;
          tentativa++) {
@@ -166,7 +368,6 @@ ResultadoInsercao tabela_hash_inserir(
         
         if (entrada->estado == ENTRADA_OCUPADA) {
 
-            
             if (strcmp(
                 entrada->estudante.matricula,
                 estudante->matricula
@@ -175,13 +376,12 @@ ResultadoInsercao tabela_hash_inserir(
                 return TABELA_INSERCAO_DUPLICADA;
             }
 
-            
             if (tentativa == 0) {
                 colisao_inicial = true;
             }
         }
 
-      
+        
         else if (entrada->estado == ENTRADA_REMOVIDA) {
 
             if (primeira_removida == tabela->capacidade) {
@@ -224,7 +424,7 @@ ResultadoInsercao tabela_hash_inserir(
         );
     }
 
-
+    
     if (primeira_removida != tabela->capacidade) {
 
         if (colisao_inicial) {
@@ -236,6 +436,7 @@ ResultadoInsercao tabela_hash_inserir(
         tabela->entradas[primeira_removida].estado = ENTRADA_OCUPADA;
 
         tabela->removidos--;
+
         tabela->quantidade++;
 
         return TABELA_INSERCAO_SUCESSO;
@@ -247,6 +448,7 @@ ResultadoInsercao tabela_hash_inserir(
 
     return TABELA_INSERCAO_CHEIA;
 }
+
 
 
 static ResultadoBusca localizar_indice(
